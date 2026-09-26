@@ -128,9 +128,6 @@ docker-compose up --build
 
 ---
 
-## 👥 Authors
+## 👥 Author
 - **Nithyashree N B**
-- **Praveena V**
-- **Priyadharsini V**
-- **Harisha S**  
 *J.J. College of Engineering and Technology — Team Pivot 4*
