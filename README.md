@@ -130,4 +130,4 @@ docker-compose up --build
 
 ## 👥 Author
 - **Nithyashree N B**
-*J.J. College of Engineering and Technology — Team Pivot 4*
+*J.J. College of Engineering and Technology
