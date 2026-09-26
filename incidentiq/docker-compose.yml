@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: incidentiq-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: incidentiq
+      MYSQL_ROOT_PASSWORD: yourpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - incidentiq-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: incidentiq-backend
+    restart: on-failure
+    depends_on:
+      - mysql
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/incidentiq?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: root
+      DB_PASSWORD: yourpassword
+      JWT_SECRET: your_jwt_secret_key_minimum_32_chars_long_incidentiq_key_2024
+      JWT_EXPIRY: 86400000
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      CORS_ALLOWED_ORIGIN: http://localhost:3000
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - incidentiq-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: incidentiq-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - incidentiq-network
+
+volumes:
+  mysql-data:
+
+networks:
+  incidentiq-network:
+    driver: bridge

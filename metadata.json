@@ -1,0 +1,6 @@
+{
+  "name": "IncidentIQ",
+  "description": "AI-Powered IT Incident Management System with automated Gemini AI incident classification, SLA tracking, and role-based incident resolution.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
