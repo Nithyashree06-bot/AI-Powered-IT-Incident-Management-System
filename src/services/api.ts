@@ -43,10 +43,19 @@ api.interceptors.response.use(
 export const classifyIncidentApi = async (description: string): Promise<IncidentClassificationResponse> => {
   try {
     const res = await api.post('/ai/classify', { description });
-    return res.data.data;
-  } catch (err) {
+    if (
+      res.data &&
+      typeof res.data === 'object' &&
+      res.data.data &&
+      res.data.data.category &&
+      Array.isArray(res.data.data.resolution_steps)
+    ) {
+      return res.data.data;
+    }
+    throw new Error('Invalid backend response');
+  } catch {
     // If backend is not reached, provide simulated classification matching Gemini prompt
-    const desc = description.toLowerCase();
+    const desc = (description || '').toLowerCase();
     if (desc.includes('switch') || desc.includes('vpn') || desc.includes('network') || desc.includes('dns') || desc.includes('firewall')) {
       const isCritical = desc.includes('offline') || desc.includes('down') || desc.includes('failure') || desc.includes('outage');
       return {

@@ -21,14 +21,16 @@ export const TicketListPage: React.FC = () => {
     setLoading(true);
     try {
       const data = await ticketService.fetchTickets();
+      const safeData = Array.isArray(data) ? data : [];
       // If employee, filter to their tickets
       if (user?.role === 'EMPLOYEE') {
-        setTickets(data.filter((t) => t.raisedBy?.id === user.id || t.raisedBy?.email === user.email));
+        setTickets(safeData.filter((t) => t.raisedBy?.id === user.id || t.raisedBy?.email === user.email));
       } else {
-        setTickets(data);
+        setTickets(safeData);
       }
     } catch (err) {
       console.error('Failed to load tickets', err);
+      setTickets([]);
     } finally {
       setLoading(false);
     }
@@ -38,15 +40,20 @@ export const TicketListPage: React.FC = () => {
     loadTickets();
   }, [user]);
 
-  const filteredTickets = tickets.filter((t) => {
+  const safeTickets = Array.isArray(tickets) ? tickets : [];
+  const filteredTickets = safeTickets.filter((t) => {
+    const titleStr = t.title || '';
+    const descStr = t.description || '';
+    const catStr = t.category?.name || '';
+
     const matchesSearch =
-      t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.category?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      titleStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      descStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      catStr.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
     const matchesSeverity = severityFilter === 'ALL' || t.severity === severityFilter;
-    const matchesCategory = categoryFilter === 'ALL' || t.category?.name === categoryFilter;
+    const matchesCategory = categoryFilter === 'ALL' || catStr === categoryFilter;
 
     return matchesSearch && matchesStatus && matchesSeverity && matchesCategory;
   });

@@ -22,7 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Check saved token and user on initialization
-    const savedToken = localStorage.getItem('incidentiq_token');
+    const savedToken = localStorage.getItem('incidentiq_token') || localStorage.getItem('token');
     const savedUserJson = localStorage.getItem('incidentiq_user');
 
     if (savedToken && savedUserJson) {
@@ -107,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setToken(null);
     localStorage.removeItem('incidentiq_token');
+    localStorage.removeItem('token');
     localStorage.removeItem('incidentiq_user');
   };
 

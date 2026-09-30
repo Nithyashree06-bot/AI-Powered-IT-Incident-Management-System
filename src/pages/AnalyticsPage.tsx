@@ -36,9 +36,10 @@ export const AnalyticsPage: React.FC = () => {
     const fetch = async () => {
       try {
         const data = await ticketService.fetchTickets();
-        setTickets(data);
+        setTickets(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error(err);
+        setTickets([]);
       } finally {
         setLoading(false);
       }
@@ -46,23 +47,24 @@ export const AnalyticsPage: React.FC = () => {
     fetch();
   }, []);
 
-  const total = tickets.length;
-  const resolved = tickets.filter((t) => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
-  const breached = tickets.filter((t) => t.slaBreached).length;
+  const safeTickets = Array.isArray(tickets) ? tickets : [];
+  const total = safeTickets.length;
+  const resolved = safeTickets.filter((t) => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
+  const breached = safeTickets.filter((t) => Boolean(t.slaBreached)).length;
   const complianceRate = total > 0 ? Math.round(((total - breached) / total) * 100) : 100;
 
   // Severity Distribution Data
   const severityData = [
-    { name: 'CRITICAL (1h)', count: tickets.filter((t) => t.severity === 'CRITICAL').length, color: '#DC2626' },
-    { name: 'HIGH (4h)', count: tickets.filter((t) => t.severity === 'HIGH').length, color: '#EA580C' },
-    { name: 'MEDIUM (8h)', count: tickets.filter((t) => t.severity === 'MEDIUM').length, color: '#D97706' },
-    { name: 'LOW (24h)', count: tickets.filter((t) => t.severity === 'LOW').length, color: '#16A34A' },
+    { name: 'CRITICAL (1h)', count: safeTickets.filter((t) => t.severity === 'CRITICAL').length, color: '#DC2626' },
+    { name: 'HIGH (4h)', count: safeTickets.filter((t) => t.severity === 'HIGH').length, color: '#EA580C' },
+    { name: 'MEDIUM (8h)', count: safeTickets.filter((t) => t.severity === 'MEDIUM').length, color: '#D97706' },
+    { name: 'LOW (24h)', count: safeTickets.filter((t) => t.severity === 'LOW').length, color: '#16A34A' },
   ];
 
   // Category Distribution Data
   const categoryData = INITIAL_CATEGORIES.map((cat) => ({
     name: cat.name,
-    count: tickets.filter((t) => t.category?.name.toLowerCase() === cat.name.toLowerCase()).length,
+    count: safeTickets.filter((t) => (t.category?.name || '').toLowerCase() === cat.name.toLowerCase()).length,
     sla: `${cat.slaHours}h`,
   }));
 

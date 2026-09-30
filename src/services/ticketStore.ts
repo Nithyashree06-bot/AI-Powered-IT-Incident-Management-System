@@ -172,7 +172,10 @@ const getStorageTickets = (): Ticket[] => {
   const data = localStorage.getItem('incidentiq_local_tickets');
   if (data) {
     try {
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
     } catch {
       // ignore
     }
@@ -182,7 +185,7 @@ const getStorageTickets = (): Ticket[] => {
 };
 
 const saveStorageTickets = (tickets: Ticket[]) => {
-  localStorage.setItem('incidentiq_local_tickets', JSON.stringify(tickets));
+  localStorage.setItem('incidentiq_local_tickets', JSON.stringify(tickets || []));
 };
 
 export const ticketService = {
@@ -191,10 +194,14 @@ export const ticketService = {
       const res = await api.get('/tickets', {
         params: { status, severity, categoryId },
       });
-      return res.data.data;
+      if (res.data && typeof res.data === 'object' && Array.isArray(res.data.data)) {
+        return res.data.data;
+      }
+      throw new Error('Not valid array');
     } catch {
       // Local fallback
       let tickets = getStorageTickets();
+      if (!Array.isArray(tickets)) tickets = INITIAL_TICKETS;
       if (status && status !== 'ALL') {
         tickets = tickets.filter((t) => t.status === status);
       }
@@ -202,35 +209,59 @@ export const ticketService = {
         tickets = tickets.filter((t) => t.severity === severity);
       }
       if (categoryId) {
-        tickets = tickets.filter((t) => t.category.id === categoryId);
+        tickets = tickets.filter((t) => t.category?.id === categoryId);
       }
-      return tickets;
+      return tickets || [];
     }
   },
 
   async getTicketDetail(id: number): Promise<{ ticket: Ticket; comments: TicketComment[]; history: TicketHistory[] }> {
     try {
       const res = await api.get(`/tickets/${id}`);
-      return res.data.data;
+      if (res.data && typeof res.data === 'object' && res.data.data && res.data.data.ticket) {
+        return {
+          ticket: res.data.data.ticket,
+          comments: Array.isArray(res.data.data.comments) ? res.data.data.comments : [],
+          history: Array.isArray(res.data.data.history) ? res.data.data.history : [],
+        };
+      }
+      throw new Error('Not valid detail structure');
     } catch {
       const tickets = getStorageTickets();
-      const ticket = tickets.find((t) => t.id === id);
+      const ticket = tickets.find((t) => t.id === id) || INITIAL_TICKETS.find((t) => t.id === id);
       if (!ticket) throw new Error('Ticket not found');
 
       const rawComments = localStorage.getItem('incidentiq_comments_' + id);
-      const comments: TicketComment[] = rawComments ? JSON.parse(rawComments) : (INITIAL_COMMENTS[id] || []);
+      let comments: TicketComment[] = [];
+      try {
+        comments = rawComments ? JSON.parse(rawComments) : (INITIAL_COMMENTS[id] || []);
+      } catch {
+        comments = INITIAL_COMMENTS[id] || [];
+      }
 
       const rawHistory = localStorage.getItem('incidentiq_history_' + id);
-      const history: TicketHistory[] = rawHistory ? JSON.parse(rawHistory) : (INITIAL_HISTORY[id] || []);
+      let history: TicketHistory[] = [];
+      try {
+        history = rawHistory ? JSON.parse(rawHistory) : (INITIAL_HISTORY[id] || []);
+      } catch {
+        history = INITIAL_HISTORY[id] || [];
+      }
 
-      return { ticket, comments, history };
+      return {
+        ticket,
+        comments: Array.isArray(comments) ? comments : [],
+        history: Array.isArray(history) ? history : [],
+      };
     }
   },
 
   async createTicket(title: string, description: string, categoryId: number | null, user: User): Promise<Ticket> {
     try {
       const res = await api.post('/tickets', { title, description, categoryId });
-      return res.data.data;
+      if (res.data && typeof res.data === 'object' && res.data.data && res.data.data.id) {
+        return res.data.data;
+      }
+      throw new Error('Fallback to local creation');
     } catch {
       // Client-side fallback with live AI classification
       const aiResult = await classifyIncidentApi(description);
@@ -283,7 +314,10 @@ export const ticketService = {
   async updateStatus(id: number, status: TicketStatus, notes: string | undefined, user: User): Promise<Ticket> {
     try {
       const res = await api.put(`/tickets/${id}/status`, { status, notes });
-      return res.data.data;
+      if (res.data && typeof res.data === 'object' && res.data.data && res.data.data.id) {
+        return res.data.data;
+      }
+      throw new Error('Fallback to local update');
     } catch {
       const tickets = getStorageTickets();
       const ticket = tickets.find((t) => t.id === id);
@@ -334,7 +368,10 @@ export const ticketService = {
   async addComment(ticketId: number, commentText: string, user: User): Promise<TicketComment> {
     try {
       const res = await api.post(`/tickets/${ticketId}/comments`, { comment: commentText });
-      return res.data.data;
+      if (res.data && typeof res.data === 'object' && res.data.data && res.data.data.id) {
+        return res.data.data;
+      }
+      throw new Error('Fallback to local comment');
     } catch {
       const newComment: TicketComment = {
         id: Date.now(),

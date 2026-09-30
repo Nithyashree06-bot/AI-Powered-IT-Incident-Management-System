@@ -38,11 +38,15 @@ export const TicketDetailPage: React.FC = () => {
     if (!id) return;
     try {
       const data = await ticketService.getTicketDetail(Number(id));
-      setTicket(data.ticket);
-      setComments(data.comments);
-      setHistory(data.history);
+      if (data && data.ticket) {
+        setTicket(data.ticket);
+        setComments(Array.isArray(data.comments) ? data.comments : []);
+        setHistory(Array.isArray(data.history) ? data.history : []);
+      }
     } catch (err) {
       console.error('Failed to load ticket details', err);
+      setComments([]);
+      setHistory([]);
     } finally {
       setLoading(false);
     }
@@ -57,7 +61,9 @@ export const TicketDetailPage: React.FC = () => {
     setUpdatingStatus(true);
     try {
       const updated = await ticketService.updateStatus(ticket.id, newStatus, notes, user);
-      setTicket(updated);
+      if (updated) {
+        setTicket(updated);
+      }
       await loadTicketData();
     } catch (err) {
       console.error('Failed to update status', err);
@@ -73,7 +79,9 @@ export const TicketDetailPage: React.FC = () => {
     setSubmittingComment(true);
     try {
       const newComment = await ticketService.addComment(ticket.id, commentText, user);
-      setComments((prev) => [...prev, newComment]);
+      if (newComment) {
+        setComments((prev) => [...(Array.isArray(prev) ? prev : []), newComment]);
+      }
       setCommentText('');
     } catch (err) {
       console.error('Failed to post comment', err);
@@ -112,6 +120,9 @@ export const TicketDetailPage: React.FC = () => {
   }
 
   const isStaffOrAdmin = user?.role === 'IT_STAFF' || user?.role === 'ADMIN';
+
+  const safeComments = Array.isArray(comments) ? comments : [];
+  const safeHistory = Array.isArray(history) ? history : [];
 
   return (
     <AppLayout>
@@ -216,9 +227,9 @@ export const TicketDetailPage: React.FC = () => {
               <span className="text-slate-400 block text-[10px] uppercase font-bold">Raised By</span>
               <span className="font-semibold text-slate-800 flex items-center gap-1 mt-0.5">
                 <User className="w-3.5 h-3.5 text-slate-400" />
-                {ticket.raisedBy?.name}
+                {ticket.raisedBy?.name || 'User'}
               </span>
-              <span className="text-[10px] text-slate-500">{ticket.raisedBy?.department}</span>
+              <span className="text-[10px] text-slate-500">{ticket.raisedBy?.department || 'General'}</span>
             </div>
 
             <div>
@@ -260,25 +271,25 @@ export const TicketDetailPage: React.FC = () => {
             <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-2xs space-y-4">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-[#1E40AF]" />
-                Incident Communication & Notes ({comments.length})
+                Incident Communication & Notes ({safeComments.length})
               </h3>
 
               <div className="space-y-3">
-                {comments.length === 0 ? (
+                {safeComments.length === 0 ? (
                   <p className="text-xs text-slate-400 py-4 text-center italic">
                     No comments yet. Post an update or resolution note below.
                   </p>
                 ) : (
-                  comments.map((comment) => (
+                  safeComments.map((comment) => (
                     <div
                       key={comment.id}
                       className="p-3 rounded-md border border-slate-100 bg-slate-50 text-xs space-y-1"
                     >
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                          {comment.user.name}
+                          {comment.user?.name || 'User'}
                           <span className="text-[9px] uppercase font-semibold px-1 py-0.2 rounded bg-slate-200 text-slate-700">
-                            {comment.user.role}
+                            {comment.user?.role || 'USER'}
                           </span>
                         </span>
                         <span className="text-slate-400">
@@ -321,11 +332,11 @@ export const TicketDetailPage: React.FC = () => {
             <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-2xs space-y-4">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <History className="w-4 h-4 text-slate-500" />
-                Audit Trail ({history.length})
+                Audit Trail ({safeHistory.length})
               </h3>
 
               <div className="relative pl-4 space-y-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                {history.map((hist, i) => (
+                {safeHistory.map((hist, i) => (
                   <div key={hist.id || i} className="relative text-xs">
                     <div className="absolute -left-4 top-1 w-2.5 h-2.5 rounded-full bg-[#1E40AF] ring-4 ring-white" />
                     <div>
@@ -340,7 +351,7 @@ export const TicketDetailPage: React.FC = () => {
                         )}
                       </p>
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        By {hist.changedBy.name} • {new Date(hist.changedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        By {hist.changedBy?.name || 'System'} • {new Date(hist.changedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>

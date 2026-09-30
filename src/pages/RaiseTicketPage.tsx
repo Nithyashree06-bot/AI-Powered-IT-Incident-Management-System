@@ -32,9 +32,9 @@ export const RaiseTicketPage: React.FC = () => {
       const result = await classifyIncidentApi(description);
       setAiPreview(result);
       // Auto-select category if none selected
-      if (!categoryId) {
+      if (!categoryId && result?.category) {
         const found = INITIAL_CATEGORIES.find(
-          (c) => c.name.toLowerCase() === result.category.toLowerCase()
+          (c) => c.name.toLowerCase() === (result.category || '').toLowerCase()
         );
         if (found) setCategoryId(found.id);
       }

@@ -13,16 +13,18 @@ export const AiResolutionBox: React.FC<AiResolutionBoxProps> = ({ stepsJson, cat
 
   let steps: string[] = [];
   try {
-    if (stepsJson) {
+    if (stepsJson && typeof stepsJson === 'string') {
       const parsed = JSON.parse(stepsJson);
-      if (Array.isArray(parsed)) steps = parsed;
+      if (Array.isArray(parsed)) steps = parsed.filter(Boolean);
       else if (typeof parsed === 'string') steps = [parsed];
     }
   } catch {
-    if (stepsJson) steps = stepsJson.split('\n').filter(Boolean);
+    if (stepsJson && typeof stepsJson === 'string') {
+      steps = stepsJson.split('\n').filter(Boolean);
+    }
   }
 
-  if (steps.length === 0) {
+  if (!Array.isArray(steps) || steps.length === 0) {
     steps = [
       'Investigate system event viewer logs for fatal exception codes.',
       'Check peripheral connections, IP network routing, and authentication credentials.',

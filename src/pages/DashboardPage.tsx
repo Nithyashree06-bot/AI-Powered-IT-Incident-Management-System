@@ -28,9 +28,10 @@ export const DashboardPage: React.FC = () => {
     const fetch = async () => {
       try {
         const data = await ticketService.fetchTickets();
-        setTickets(data);
+        setTickets(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error(err);
+        setTickets([]);
       } finally {
         setLoading(false);
       }
@@ -38,13 +39,14 @@ export const DashboardPage: React.FC = () => {
     fetch();
   }, []);
 
-  const total = tickets.length;
-  const openCount = tickets.filter((t) => t.status === 'OPEN').length;
-  const inProgressCount = tickets.filter((t) => t.status === 'IN_PROGRESS').length;
-  const resolvedCount = tickets.filter((t) => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
-  const breachedCount = tickets.filter((t) => t.slaBreached).length;
+  const safeTickets = Array.isArray(tickets) ? tickets : [];
+  const total = safeTickets.length;
+  const openCount = safeTickets.filter((t) => t.status === 'OPEN').length;
+  const inProgressCount = safeTickets.filter((t) => t.status === 'IN_PROGRESS').length;
+  const resolvedCount = safeTickets.filter((t) => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
+  const breachedCount = safeTickets.filter((t) => Boolean(t.slaBreached)).length;
 
-  const criticalAndHigh = tickets
+  const criticalAndHigh = safeTickets
     .filter((t) => (t.severity === 'CRITICAL' || t.severity === 'HIGH') && t.status !== 'RESOLVED' && t.status !== 'CLOSED')
     .slice(0, 5);
 
